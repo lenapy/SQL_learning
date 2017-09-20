@@ -118,3 +118,47 @@ CREATE TABLE supply(
 
 ALTER TABLE product ADD COLUMN brend VARCHAR(30);
 ALTER TABLE supply ADD COLUMN date DATE;
+
+SELECT name, surname, birthday
+FROM customer
+WHERE regular_customer = 1
+      AND  EXTRACT(month FROM now()) = EXTRACT(month FROM birthday) ;
+
+SELECT id, name, date_ending
+FROM promotion
+WHERE date_ending = 'today'::date + interval '7 day';
+
+SELECT provider.id, provider.name, supply.date
+FROM provider
+  JOIN supply ON provider.id = supply.provider_id
+WHERE supply.date BETWEEN 'today'::date - interval '3 month' AND 'today'::date;
+
+SELECT product.id, product.name, basket.product_id, basket.date
+FROM product
+  LEFT JOIN  basket ON product.id = basket.product_id
+WHERE basket.date NOT BETWEEN 'today'::date - interval '1 month' AND 'today'::date
+      OR basket.date ISNULL;
+
+
+SELECT id, name
+FROM product
+WHERE promotion_id ISNULL;
+
+SELECT provider.name, supply.date
+FROM provider
+  LEFT JOIN supply ON provider.id = supply.provider_id
+WHERE supply.date NOT BETWEEN 'today'::date - interval '1 month' AND 'today'::date
+      OR supply.date ISNULL;
+
+SELECT customer.id, customer.name, customer.surname
+FROM customer
+  LEFT JOIN customer_order ON customer.id = customer_order.customer_id
+WHERE customer.regular_customer = 1
+      AND customer_order.date NOT BETWEEN 'today'::date - interval '1 month' AND 'today'::date
+      OR customer_order.date ISNULL;
+
+SELECT product.name, promotion.name, basket.product_id, basket.date
+FROM product
+  LEFT JOIN promotion on product.promotion_id = promotion.id
+  LEFT JOIN basket ON product.id = basket.product_id
+WHERE promotion_id IS NOT NULL AND product_id ISNULL;
