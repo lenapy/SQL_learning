@@ -144,13 +144,23 @@ CREATE TABLE IF NOT EXISTS supply(
 
 );
 
+CREATE TABLE IF NOT EXISTS promotions_product(
+  id SERIAL,
+  product_id INT NOT NULL,
+  promotion_id INT NOT NULL,
+  PRIMARY KEY (id),
+  FOREIGN KEY(product_id) REFERENCES product(id) ON DELETE SET NULL,
+  FOREIGN KEY(promotion_id) REFERENCES provider(id) ON DELETE SET NULL
+);
+
 ALTER TABLE product ADD COLUMN brand VARCHAR(30);
 ALTER TABLE supply ADD COLUMN date DATE;
+ALTER TABLE product DROP COLUMN IF EXISTS promotion_id;
 
 SELECT name, surname, birthday
 FROM customer
 WHERE regular_customer = 1
-      AND  EXTRACT(month FROM now()) = EXTRACT(month FROM birthday) ;
+      AND  EXTRACT(month FROM now()) = EXTRACT(month FROM birthday);
 
 SELECT id, name, date_ending
 FROM promotion
@@ -168,8 +178,9 @@ WHERE basket.date NOT BETWEEN 'today'::date - interval '1 month' AND 'today'::da
       OR basket.date ISNULL;
 
 
-SELECT id, name
+SELECT product.id, product.name
 FROM product
+LEFT JOIN promotions_product ON product.id = promotions_product.product_id
 WHERE promotion_id ISNULL;
 
 SELECT provider.name, supply.date
@@ -185,8 +196,104 @@ WHERE customer.regular_customer = 1
       AND customer_order.date NOT BETWEEN 'today'::date - interval '1 month' AND 'today'::date
       OR customer_order.date ISNULL;
 
-SELECT product.name, promotion.name, basket.product_id, basket.date
+SELECT product.name AS product_name, promotion.name AS promotion_name
 FROM product
-  LEFT JOIN promotion on product.promotion_id = promotion.id
-  LEFT JOIN basket ON product.id = basket.product_id
-WHERE promotion_id IS NOT NULL AND product_id ISNULL;
+JOIN promotions_product ON product.id = promotions_product.product_id
+JOIN promotion ON promotion.id = promotions_product.promotion_id
+LEFT JOIN basket ON product.id = basket.product_id
+WHERE basket.sum ISNULL AND (basket.date BETWEEN promotion.date_beginning AND promotion.date_ending OR basket.date ISNULL);
+
+SELECT product.brand, sum(basket.sum)
+from basket
+JOIN product ON basket.product_id = product.id
+WHERE product.subcategory_id = 1
+      AND basket.date BETWEEN 'today'::date - interval '1 month' AND 'today'::date
+GROUP BY product.brand;
+
+SELECT category.name, sum(basket.sum)
+from basket
+JOIN product ON basket.product_id = product.id
+JOIN subcategory ON product.subcategory_id = subcategory.id
+JOIN category ON subcategory.category_id = category.id
+WHERE basket.date BETWEEN 'today'::date - interval '1 month' AND 'today'::date
+GROUP BY category.id;
+
+SELECT product.name, count(basket.product_id), sum(basket.sum)
+FROM basket
+JOIN product ON basket.product_id = product.id
+WHERE basket.date BETWEEN 'today'::date - interval '7 days' AND 'today'::date
+GROUP BY product.id;
+
+SELECT to_char(supply.date, 'month') AS month, sum(supply.sum) AS monthly_sum, provider.name
+FROM supply
+JOIN provider ON supply.provider_id = provider.id
+WHERE EXTRACT(YEAR FROM supply.date) = EXTRACT(YEAR FROM now())
+GROUP BY provider.id, month;
+
+SELECT product.id, product.name
+FROM product
+JOIN subcategory ON product.subcategory_id = subcategory.id
+JOIN category ON subcategory.category_id = category.id
+WHERE category.id = 1 and product.price = 100;
+
+SELECT provider.name
+FROM provider
+JOIN supply ON provider.id = supply.provider_id
+JOIN product ON supply.product_id = product.id
+WHERE product.brand = 'White Mandarin'
+GROUP BY provider.name;
+
+SELECT product.id, product.name
+FROM product
+WHERE product.promotion_id IS NOT NULL AND product.brand = 'Chanel';
+
+SELECT product.brand
+FROM product
+WHERE subcategory_id = 5
+GROUP BY brand;
+
+-- SELECT sum_table.name as name,
+--   sum_table.surname as surname,
+--   max(sum_table.monthly_sum) as max
+-- FROM (SELECT customer.name,
+--         customer.surname,
+--         sum(customer_order.sum) as monthly_sum
+-- FROM customer
+-- JOIN customer_order ON customer.id = customer_order.customer_id
+-- WHERE customer_order.date BETWEEN '2017-09-01' AND now()
+-- GROUP BY customer.id) sum_table
+-- GROUP BY name, surname
+-- ORDER BY  max DESC LIMIT 1;
+
+SELECT customer.name, customer.surname,
+        sum(customer_order.sum) as monthly_sum
+FROM customer
+JOIN customer_order ON customer.id = customer_order.customer_id
+WHERE customer_order.date BETWEEN '2017-09-01' AND now()
+GROUP BY customer.name, customer.surname
+ORDER BY monthly_sum DESC LIMIT 1;
+
+SELECT product.name,product.brand, category.name, count(product.id)
+FROM product
+JOIN basket ON product.id = basket.product_id
+JOIN subcategory ON product.subcategory_id = subcategory.id
+JOIN category ON subcategory.category_id = category.id
+GROUP BY product.id, category.name
+ORDER BY count DESC LIMIT 1;
+
+SELECT provider.name, sum(supply.sum) as sum
+FROM provider
+JOIN supply ON provider.id = supply.provider_id
+WHERE EXTRACT(YEAR FROM supply.date) = EXTRACT(YEAR FROM now())
+GROUP BY provider.name
+ORDER BY sum DESC LIMIT 1;
+
+SELECT product.name AS product_name, promotion.name AS promotion_name, sum(basket.sum) as sum
+FROM product
+JOIN promotions_product ON product.id = promotions_product.product_id
+JOIN promotion ON promotion.id = promotions_product.promotion_id
+JOIN basket ON product.id = basket.product_id
+WHERE basket.date BETWEEN 'today'::date - interval '6 month' AND 'today'::date
+GROUP BY product.name, promotion.name
+ORDER BY sum DESC LIMIT 1;
+

@@ -6,3 +6,4 @@ INSERT INTO public.subcategory (id, name, category_id) VALUES (5, 'Помады'
 INSERT INTO public.subcategory (id, name, category_id) VALUES (6, 'Туши', 3);
 INSERT INTO public.subcategory (id, name, category_id) VALUES (7, 'Женская', 4);
 INSERT INTO public.subcategory (id, name, category_id) VALUES (8, 'Мужская', 4);
+INSERT INTO public.subcategory (id, name, category_id) VALUES (9, 'Маски', 1);
