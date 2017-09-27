@@ -150,11 +150,9 @@ CREATE TABLE IF NOT EXISTS promotions_product(
   promotion_id INT NOT NULL,
   PRIMARY KEY (id),
   FOREIGN KEY(product_id) REFERENCES product(id) ON DELETE SET NULL,
-  FOREIGN KEY(promotion_id) REFERENCES provider(id) ON DELETE SET NULL
+  FOREIGN KEY(promotion_id) REFERENCES promotion(id) ON DELETE SET NULL
 );
 
 ALTER TABLE product ADD COLUMN brand VARCHAR(30);
 ALTER TABLE supply ADD COLUMN date DATE;
 ALTER TABLE product DROP COLUMN IF EXISTS promotion_id;
-
-

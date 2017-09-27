@@ -7,10 +7,13 @@ SELECT id, name, date_ending
 FROM promotion
 WHERE date_ending = 'today'::date + interval '7 day';
 
-SELECT provider.id, provider.name, supply.date
+SELECT provider.name
 FROM provider
-  JOIN supply ON provider.id = supply.provider_id
-WHERE supply.date BETWEEN 'today'::date - interval '3 month' AND 'today'::date;
+WHERE provider.id NOT IN (SELECT provider.id
+FROM provider
+LEFT JOIN supply ON provider.id = supply.provider_id
+WHERE supply.date BETWEEN 'today'::date - interval '1 month'
+AND 'today'::date);
 
 SELECT product.id, product.name, basket.product_id, basket.date
 FROM product
@@ -22,7 +25,9 @@ WHERE basket.date NOT BETWEEN 'today'::date - interval '1 month' AND 'today'::da
 SELECT product.id, product.name
 FROM product
 LEFT JOIN promotions_product ON product.id = promotions_product.product_id
-WHERE promotion_id ISNULL;
+LEFT JOIN promotion ON promotions_product.promotion_id = promotion.id
+WHERE promotion.id ISNULL
+      OR 'today'::date NOT BETWEEN promotion.date_beginning AND promotion.date_ending;
 
 SELECT provider.name, supply.date
 FROM provider
@@ -59,11 +64,13 @@ JOIN category ON subcategory.category_id = category.id
 WHERE basket.date BETWEEN 'today'::date - interval '1 month' AND 'today'::date
 GROUP BY category.id;
 
-SELECT product.name, count(basket.product_id), sum(basket.sum)
+SELECT customer.id, product.name, count(basket.product_id), avg(basket.sum)
 FROM basket
 JOIN product ON basket.product_id = product.id
+JOIN customer_order ON basket.order_id = customer_order.id
+JOIN customer ON customer_order.customer_id = customer.id
 WHERE basket.date BETWEEN 'today'::date - interval '7 days' AND 'today'::date
-GROUP BY product.id;
+GROUP BY product.id, customer.id;
 
 SELECT to_char(supply.date, 'month') AS month, sum(supply.sum) AS monthly_sum, provider.name
 FROM supply
@@ -75,7 +82,7 @@ SELECT product.id, product.name
 FROM product
 JOIN subcategory ON product.subcategory_id = subcategory.id
 JOIN category ON subcategory.category_id = category.id
-WHERE category.id = 1 and product.price = 100;
+WHERE category.name = 'Волосы' and product.price = 100;
 
 SELECT provider.name
 FROM provider
@@ -86,7 +93,8 @@ GROUP BY provider.name;
 
 SELECT product.id, product.name
 FROM product
-WHERE product.promotion_id IS NOT NULL AND product.brand = 'Chanel';
+JOIN promotions_product ON product.id = promotions_product.product_id
+WHERE product.brand = 'Chanel';
 
 SELECT product.brand
 FROM product
